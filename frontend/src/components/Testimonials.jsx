@@ -1,4 +1,5 @@
 import React from 'react';
+import { Star } from 'lucide-react';
 
 const Testimonials = () => {
   const reviews = [
@@ -11,57 +12,59 @@ const Testimonials = () => {
 
   return (
     <section className="py-24 bg-white overflow-hidden">
-      <div className="max-w-7xl mx-auto px-6 mb-12 flex justify-between items-end">
-        <div>
-          <h2 className="text-4xl font-black text-black uppercase tracking-tighter">
-            Buyer <span className="text-red-600">Feedback</span>
-          </h2>
-          <div className="w-12 h-1 bg-red-600 mt-2"></div>
-        </div>
-        <div className="hidden md:block text-zinc-400 text-xs font-mono uppercase tracking-widest">
-          Verified Reviews // 2026
+      <div className="max-w-7xl mx-auto px-6 mb-12">
+        <div className="flex items-end justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-[2px] w-8 bg-red-600"></div>
+              <span className="text-red-600 text-[9px] font-black uppercase tracking-[0.4em]">Testimonials</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black text-black uppercase tracking-tighter">
+              Buyer <span className="text-red-600">Feedback</span>
+            </h2>
+          </div>
+          <div className="hidden md:block text-zinc-400 text-[10px] font-bold uppercase tracking-[0.3em]">
+            Verified Reviews // 2026
+          </div>
         </div>
       </div>
 
-      <div className="relative flex">
-        <div className="flex animate-scroll whitespace-nowrap">
+      <div className="relative">
+        <div className="flex animate-scroll hover:animate-scroll-paused">
           {[...reviews, ...reviews].map((rev, index) => (
-            <div 
-              key={index} 
-              className="inline-block w-[350px] mx-4 p-8 bg-zinc-50 border border-zinc-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow"
+            <div
+              key={index}
+              className="inline-block w-[350px] mx-3 p-8 bg-zinc-50 border border-zinc-100 hover:shadow-lg transition-shadow duration-300 flex-shrink-0"
             >
               <div className="flex gap-1 mb-4">
-                {[...Array(rev.stars)].map((_, i) => (
-                  <span key={i} className="text-red-600 text-lg">★</span>
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    size={14}
+                    className={i < rev.stars ? 'text-red-600 fill-red-600' : 'text-zinc-300'}
+                  />
                 ))}
               </div>
               <p className="text-zinc-700 text-sm italic whitespace-normal mb-6 leading-relaxed">
                 "{rev.text}"
               </p>
               <div className="flex items-center gap-4 border-t border-zinc-200 pt-4">
-                <img 
-                  src={rev.pfp} 
-                  alt={rev.name} 
-                  className="w-10 h-10 rounded-full border-2 border-red-600 object-cover"
+                <img
+                  src={rev.pfp}
+                  alt={rev.name}
+                  className="w-10 h-10 object-cover border-2 border-red-600"
                 />
-                <span className="text-black font-bold text-sm uppercase tracking-tight">
-                  {rev.name}
-                </span>
+                <div>
+                  <span className="text-black font-bold text-sm uppercase tracking-tight">
+                    {rev.name}
+                  </span>
+                  <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Verified Buyer</p>
+                </div>
               </div>
             </div>
           ))}
         </div>
       </div>
-
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes scroll {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .animate-scroll {
-          animation: scroll 30s linear infinite;
-        }
-      `}} />
     </section>
   );
 };
