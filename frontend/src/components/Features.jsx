@@ -34,13 +34,13 @@ const Features = () => {
   ];
 
   return (
-    <section className="py-24 bg-white">
+    <section className="py-24 bg-black">
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-20">
-          <h2 className="text-5xl font-black text-black uppercase tracking-tighter">
+          <h2 className="text-5xl font-black text-white uppercase tracking-tighter">
             AI Powered <span className="text-red-600">Tools</span>
           </h2>
-          <p className="text-zinc-500 mt-4 max-w-2xl mx-auto font-medium">
+          <p className="text-zinc-400 mt-4 max-w-2xl mx-auto font-medium">
             Our intelligent system helps buyers and sellers find the exact spare parts faster 
             using vehicle data, images, and smart pricing insights.
           </p>

@@ -1,12 +1,18 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ScanFace, BrainCircuit, Target, Zap, Activity, Globe, Shield, Cpu, Award, CheckCircle, ArrowRight, Gauge, Wrench, Star } from 'lucide-react';
+import { ScanFace, BrainCircuit, Target, Zap, Award, ArrowRight, Clock, CheckCircle, Store, AlertTriangle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { useAuthGuard } from '../hooks/useAuthGuard';
 import AuthGuardModal from './AuthGuardModal';
 
 export default function Hero() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { guardAction, AuthGuardModalProps } = useAuthGuard();
+
+  const isApprovedPro = user?.isPremium && user?.premiumStatus === 'approved';
+  const isPending = user?.premiumStatus === 'pending';
+  const isRejected = user?.premiumStatus === 'rejected';
 
   const aiFeatures = [
     { title: "VIN Decoder", desc: "Instant part verification.", icon: <ScanFace size={20} />, tag: "AI POWERED" },
@@ -16,7 +22,7 @@ export default function Hero() {
   ];
 
   return (
-    <div className="relative min-h-[900px] w-full overflow-hidden bg-black text-white">
+    <div className="relative min-h-[80vh] w-full overflow-hidden bg-black text-white">
       
       {/* Background Image */}
       <div className="absolute top-0 left-0 w-full h-full">
@@ -32,33 +38,6 @@ export default function Hero() {
 
       <div className="relative z-20 max-w-7xl mx-auto px-6 h-full flex flex-col">
         
-        {/* --- TACTICAL TOP HUD --- */}
-        <div className="mt-8 flex items-center justify-between border-y border-white/5 py-3 backdrop-blur-md bg-white/5 animate-in fade-in slide-in-from-top-4 duration-1000">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 bg-red-600 rounded-full animate-pulse"></div>
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-400">System: Online</span>
-            </div>
-            <div className="hidden md:flex items-center gap-2 border-l border-white/10 pl-6">
-              <Globe size={12} className="text-red-600" />
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-400">Node: Colombo_HQ</span>
-            </div>
-          </div>
-          
-          {/* Scrolling Ticker */}
-          <div className="flex-1 max-w-md mx-10 overflow-hidden hidden lg:block border-x border-white/5 px-4">
-            <div className="whitespace-nowrap animate-ticker text-[8px] font-bold uppercase tracking-[0.3em] text-red-600/60">
-              NEW TURBOCHARGER LISTED IN KANDY • MARKET VOLATILITY: LOW • AI ENGINE V3.0 ACTIVATED • SECURE TRADING PROTOCOLS ENABLED • 
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <Shield size={12} className="text-zinc-600" />
-            <Cpu size={12} className="text-zinc-600" />
-            <Activity size={12} className="text-red-600 animate-pulse" />
-          </div>
-        </div>
-
         {/* --- MAIN CONTENT AREA --- */}
         <div className="flex-1 flex flex-col justify-center py-16">
           {/* Top Tagline */}
@@ -72,7 +51,7 @@ export default function Hero() {
           {/* Main Heading */}
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[0.9] mb-8 tracking-tighter uppercase">
             Know Your Part <br />
-            <span className="text-red-600 italic">Know Its Value.</span>
+            <span className="text-red-600">Know Its Value.</span>
           </h1>
 
           {/* Description */}
@@ -93,129 +72,156 @@ export default function Hero() {
               <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
             </button>
 
-<button 
+            <button
               onClick={() => guardAction('list parts for sale', () => navigate('/post-ad'))}
               className="px-12 py-5 border border-white/20 bg-white/5 backdrop-blur-sm hover:bg-white hover:text-black transition-all duration-300 font-black uppercase text-sm tracking-widest"
             >
-Start Selling
+              Start Selling
             </button>
           </div>
         </div>
 
-        {/* --- SILVIA SHOWCASE BANNER --- */}
-        <div className="relative py-6 pb-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="flex-1 border-t border-dashed border-white/10"></div>
-            <div className="flex-1 border-t border-dashed border-white/10"></div>
-          </div>
-          
-          <div className="relative flex items-center justify-center gap-8">
-            <div className="flex items-center gap-2 text-zinc-600">
-              <Wrench size={14} />
-              <span className="text-[10px] font-black uppercase tracking-widest">Builds</span>
-            </div>
-            
-            <div className="relative group">
-              <div className="relative w-[300px] md:w-[450px] h-[140px] md:h-[180px] overflow-hidden border border-zinc-800 bg-zinc-950/80">
-                <img 
-                  src="/silvia1.png" 
-                  alt="Silvia Build"
-                  className="w-full h-full object-cover opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700 filter grayscale group-hover:grayscale-0"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Gauge size={12} className="text-red-600" />
-                    <span className="text-[8px] font-black uppercase tracking-widest text-red-600">Featured Build</span>
+        {/* --- PRO SELLER BANNER --- */}
+        <div className="pb-8">
+          {isApprovedPro ? (
+            /* APPROVED PRO */
+            <div className="relative bg-green-950/30 border border-green-800/50 p-6 md:p-8 overflow-hidden">
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-green-500/10 rounded-full blur-3xl" />
+              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-5">
+                  <div className="w-14 h-14 bg-green-600/20 border border-green-500/30 flex items-center justify-center shrink-0">
+                    <CheckCircle size={28} className="text-green-500" />
                   </div>
-                  <h4 className="text-lg font-black uppercase tracking-tight text-white">Nissan Silvia S15</h4>
-                  <p className="text-[10px] text-zinc-400 font-medium uppercase tracking-wide">SR20DET • RB25DET Swap Ready</p>
-                </div>
-                
-                <div className="absolute top-3 right-3 flex gap-1">
-                  {[1,2,3,4,5].map((star) => (
-                    <Star key={star} size={10} className="text-yellow-600 fill-yellow-600" />
-                  ))}
-                </div>
-              </div>
-              
-              <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 flex items-center justify-center border-2 border-black">
-                <span className="text-[8px] font-black text-white">01</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2 text-zinc-600">
-              <span className="text-[10px] font-black uppercase tracking-widest">Parts</span>
-              <Wrench size={14} />
-            </div>
-          </div>
-        </div>
-
-{/* --- AI FEATURE CARDS GRID --- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pb-6">
-          {aiFeatures.map((feature, index) => (
-            <div 
-              key={index} 
-              className="group bg-zinc-950/80 border border-zinc-900 p-6 hover:border-red-600 transition-all duration-500 backdrop-blur-md relative overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 w-8 h-8 border-t border-r border-white/10 group-hover:border-red-600 transition-colors"></div>
-              <div className="flex justify-between items-start mb-6">
-                <div className="text-red-600 p-2 bg-red-600/10 border border-red-600/20 group-hover:bg-red-600 group-hover:text-white transition-all duration-500">
-                  {feature.icon}
-                </div>
-                <span className="text-[8px] font-black text-zinc-700 group-hover:text-red-600 tracking-widest uppercase italic">{feature.tag}</span>
-              </div>
-              <h3 className="text-sm font-black uppercase tracking-widest mb-2 group-hover:text-red-600 transition-colors">{feature.title}</h3>
-              <p className="text-[10px] text-zinc-500 font-bold uppercase leading-relaxed tracking-tight">{feature.desc}</p>
-            </div>
-          ))}
-</div>
-
-{/* --- VERIFIED SHOP SECTION --- */}
-        <div className="pb-12">
-          <div className="relative bg-gradient-to-r from-zinc-900/90 to-zinc-950/90 border border-blue-500/30 p-8 overflow-hidden">
-            {/* Blue accent glow */}
-            <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl"></div>
-            
-            <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
-              <div className="flex items-center gap-6">
-                <div className="w-20 h-20 flex items-center justify-center bg-blue-500/10 border-2 border-blue-500">
-                  <Award size={40} className="text-blue-500" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle size={14} className="text-blue-500" />
-                    <span className="text-blue-500 text-[10px] font-black uppercase tracking-widest">Verified Partner</span>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-green-500 bg-green-500/10 px-2 py-0.5 border border-green-500/20">PRO Seller</span>
+                    </div>
+                    <h3 className="text-lg md:text-xl font-black uppercase text-white tracking-tight">
+                      Welcome back, <span className="text-green-500">{user?.businessName || user?.name}</span>
+                    </h3>
+                    <p className="text-sm text-zinc-400 mt-1">
+                      Your PRO shop is live. Manage listings, track performance, and reach more buyers.
+                    </p>
                   </div>
-                  <h3 className="text-2xl font-black uppercase tracking-tight"><span className="text-red-600">SPAREHUB</span><span className="text-white">LK</span> <span className="text-blue-500">PRO</span></h3>
-                  <p className="text-sm text-zinc-400 mt-1 max-w-md">
-                    Exclusive wholesale pricing for verified manufacturers and bulk sellers. 
-                    Get direct access to OEM parts at factory rates.
-                  </p>
+                </div>
+                <div className="flex gap-3 shrink-0">
+                  <button
+                    onClick={() => navigate('/pro-dashboard')}
+                    className="group flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-500 text-white font-black uppercase text-xs tracking-widest transition-all"
+                  >
+                    <Store size={14} />
+                    Visit Your Shop
+                  </button>
+                  <button
+                    onClick={() => navigate('/post-ad')}
+                    className="flex items-center gap-2 px-6 py-3 border border-zinc-700 hover:border-green-500 text-zinc-300 hover:text-white font-black uppercase text-xs tracking-widest transition-all"
+                  >
+                    <Zap size={14} /> List Product
+                  </button>
                 </div>
               </div>
-              
-              <div className="flex flex-col items-center gap-4">
-                <div className="flex items-center gap-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">
-                  <span>✓</span>
-                  <span>Authentic Parts</span>
-                  <span className="w-1 h-1 bg-blue-500 rounded-full"></span>
-                  <span>Wholesale Rates</span>
-                  <span className="w-1 h-1 bg-blue-500 rounded-full"></span>
-                  <span>Priority Support</span>
+            </div>
+          ) : isPending ? (
+            /* PENDING */
+            <div className="relative bg-yellow-950/20 border border-yellow-800/40 p-6 md:p-8 overflow-hidden">
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-yellow-500/10 rounded-full blur-3xl" />
+              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-5">
+                  <div className="w-14 h-14 bg-yellow-600/20 border border-yellow-500/30 flex items-center justify-center shrink-0">
+                    <Clock size={28} className="text-yellow-500" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-yellow-500 bg-yellow-500/10 px-2 py-0.5 border border-yellow-500/20">Application Submitted</span>
+                    </div>
+                    <h3 className="text-lg md:text-xl font-black uppercase text-white tracking-tight">
+                      Waiting for <span className="text-yellow-500">Approval.</span>
+                    </h3>
+                    <p className="text-sm text-zinc-400 mt-1">
+                      Your PRO application is under admin review. Check back soon for updates.
+                    </p>
+                  </div>
                 </div>
-                <button 
+                <div className="flex items-center gap-2 px-6 py-3 bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs font-black uppercase tracking-widest shrink-0">
+                  <Clock size={14} className="animate-pulse" />
+                  Under Review
+                </div>
+              </div>
+            </div>
+          ) : isRejected ? (
+            /* REJECTED */
+            <div className="relative bg-red-950/20 border border-red-800/40 p-6 md:p-8 overflow-hidden">
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-red-500/10 rounded-full blur-3xl" />
+              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-5">
+                  <div className="w-14 h-14 bg-red-600/20 border border-red-500/30 flex items-center justify-center shrink-0">
+                    <AlertTriangle size={28} className="text-red-500" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-red-500 bg-red-500/10 px-2 py-0.5 border border-red-500/20">Not Approved</span>
+                    </div>
+                    <h3 className="text-lg md:text-xl font-black uppercase text-white tracking-tight">
+                      Re-Apply for <span className="text-red-500">PRO.</span>
+                    </h3>
+                    <p className="text-sm text-zinc-400 mt-1">
+                      Your previous application was not approved. Update your details and try again.
+                    </p>
+                  </div>
+                </div>
+                <button
                   onClick={() => navigate('/apply-pro')}
-                  className="group px-10 py-4 bg-blue-600 hover:bg-blue-500 transition-all duration-300 shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_30px_rgba(37,99,235,0.5)]"
+                  className="group flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-500 text-white font-black uppercase text-xs tracking-widest transition-all shrink-0"
                 >
-                  <span className="flex items-center gap-2 font-black uppercase text-sm tracking-widest text-white">
-                    Apply for PRO
-                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                  </span>
+                  Re-Apply
+                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>
             </div>
-          </div>
+          ) : (
+            /* DEFAULT: Not applied */
+            <div className="relative bg-zinc-900/80 border border-zinc-800 p-6 md:p-8 overflow-hidden">
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl" />
+              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-5">
+                  <div className="w-14 h-14 bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0">
+                    <Award size={28} className="text-blue-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg md:text-xl font-black uppercase text-white tracking-tight">
+                      Sell on SpareHub<span className="text-blue-500">.</span>
+                    </h3>
+                    <p className="text-sm text-zinc-400 mt-1">
+                      Verified PRO sellers get featured placement, custom shop pages, and bulk listing tools.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => guardAction('apply for PRO seller status', () => navigate('/apply-pro'))}
+                  className="group flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase text-xs tracking-widest transition-all shrink-0"
+                >
+                  Apply for PRO
+                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* --- AI FEATURES --- */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-12">
+          {aiFeatures.map((feature, index) => (
+            <div
+              key={index}
+              className="group bg-zinc-900 border border-zinc-800 p-5 hover:border-red-600 transition-all duration-300"
+            >
+              <div className="text-red-600 mb-4">
+                {feature.icon}
+              </div>
+              <h3 className="text-sm font-bold uppercase tracking-wide mb-1 text-white">{feature.title}</h3>
+              <p className="text-xs text-zinc-500 leading-relaxed">{feature.desc}</p>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -223,10 +229,6 @@ Start Selling
 
       {/* Global Animations */}
       <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes ticker {
-          0% { transform: translateX(100%); }
-          100% { transform: translateX(-100%); }
-        }
         @keyframes kenburns {
           0% { transform: scale(1) translate(0, 0); }
           50% { transform: scale(1.1) translate(-1%, -1%); }
@@ -236,7 +238,6 @@ Start Selling
           0% { transform: translateX(-100%); opacity: 0; }
           100% { transform: translateX(0); opacity: 1; }
         }
-        .animate-ticker { animation: ticker 30s linear infinite; }
         .animate-kenburns { animation: kenburns 20s ease-in-out infinite; }
         .animate-slideRight { animation: slideRight 1s ease-out forwards; }
       `}} />

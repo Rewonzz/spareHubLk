@@ -75,6 +75,14 @@ const userSchema = new mongoose.Schema({
         enum: ['pending', 'approved', 'rejected', null],
         default: null,
     },
+    bannerImage: {
+        type: String,
+        default: null,
+    },
+    shopAvatar: {
+        type: String,
+        default: null,
+    },
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

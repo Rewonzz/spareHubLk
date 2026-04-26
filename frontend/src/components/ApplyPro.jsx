@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 
 export default function ApplyPro() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -88,6 +88,10 @@ export default function ApplyPro() {
         city: formData.city,
         businessType: formData.businessType,
       });
+      // Update auth context so homepage shows "Waiting for Approval" immediately
+      if (user) {
+        updateUser({ ...user, premiumStatus: 'pending' });
+      }
       setSuccess(true);
     } catch (err) {
       setError(err.message || 'Failed to submit application. Please try again.');
@@ -109,8 +113,14 @@ export default function ApplyPro() {
             We will review your documents and get back to you within 2-3 business days.
           </p>
           <button 
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/')}
             className="w-full py-5 bg-blue-500 hover:bg-blue-400 transition-all duration-300 font-black uppercase text-sm tracking-widest text-black"
+          >
+            Go to Homepage
+          </button>
+          <button 
+            onClick={() => navigate('/dashboard')}
+            className="w-full mt-3 py-4 border border-zinc-700 hover:border-blue-500 text-zinc-400 hover:text-white transition-all font-black uppercase text-xs tracking-widest"
           >
             Go to My Dashboard
           </button>

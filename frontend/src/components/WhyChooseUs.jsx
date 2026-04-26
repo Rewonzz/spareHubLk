@@ -28,11 +28,11 @@ const WhyChooseUs = () => {
         <div className="inline-block px-4 py-1 border border-red-600 text-red-600 text-[10px] font-black uppercase tracking-[0.5em] mb-6">
           The Advantage
         </div>
-        <h2 className="text-7xl md:text-[90px] font-black text-white leading-[0.9] uppercase tracking-tighter mb-8">
-          WHY TRUST <br />
-          <span className="text-red-600 italic">SPAREHUB.</span>
+        <h2 className="text-4xl md:text-6xl font-black text-white leading-tight uppercase tracking-tighter mb-6">
+          Why Trust <br />
+          <span className="text-red-600">SpareHub.</span>
         </h2>
-        <p className="text-zinc-500 text-sm uppercase tracking-[0.2em] max-w-md leading-relaxed">
+        <p className="text-zinc-400 text-base max-w-md leading-relaxed">
           Building the most trusted marketplace for Sri Lankan automotive enthusiasts through transparency and direct communication.
         </p>
       </div>
@@ -48,7 +48,7 @@ const WhyChooseUs = () => {
               {item.icon}
             </div>
             <div>
-              <div className="text-zinc-700 font-mono text-[10px] mb-2">0{index + 1}</div>
+              <div className="text-zinc-600 text-xs font-bold mb-1">0{index + 1}</div>
               <h3 className="text-white font-black text-xl mb-3 uppercase tracking-tighter">
                 {item.title}
               </h3>

@@ -86,19 +86,19 @@ export default function ProductCard({ id, title, price, location, condition, cat
 
           {/* PRO Badge (Top Left) */}
           {isPro && (
-            <div className="absolute top-4 left-4 flex items-center gap-1 bg-blue-600 text-white text-[8px] font-black uppercase tracking-[0.2em] px-2 py-1 shadow-xl">
+            <div className="absolute top-3 left-3 flex items-center gap-1 bg-blue-600 text-white text-[8px] font-black uppercase tracking-[0.2em] px-2 py-1 shadow-xl z-10">
               <Shield size={10} /> PRO
             </div>
           )}
 
           {/* Condition Tag (Top Right) */}
-          <div className={`absolute top-4 right-4 ${bgClass} text-white text-[8px] font-black uppercase tracking-[0.2em] px-2 py-1 italic shadow-xl`}>
+          <div className={`absolute top-3 right-3 ${bgClass} text-white text-[8px] font-black uppercase tracking-[0.2em] px-2 py-1 italic shadow-xl z-10`}>
             {condition || "New"}
           </div>
 
-          {/* Category Badge (Top Left) */}
+          {/* Category Badge (Below PRO badge) */}
           {category && (
-            <div className={`absolute top-4 left-4 flex items-center gap-1.5 px-2.5 py-1.5 shadow-sm border backdrop-blur-md ${isDark ? 'bg-black/50 border-zinc-700' : 'bg-white/90 border-zinc-200'}`}>
+            <div className={`absolute left-3 flex items-center gap-1.5 px-2.5 py-1.5 shadow-sm border backdrop-blur-md z-10 ${isPro ? 'top-9' : 'top-3'} ${isDark ? 'bg-black/50 border-zinc-700' : 'bg-white/90 border-zinc-200'}`}>
               <span className={`text-[9px] font-black uppercase tracking-[0.1em] ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                 {category}
               </span>

@@ -115,7 +115,8 @@ router.put('/:id/status', verifyToken, async (req, res) => {
             userUpdate.businessAddress = application.businessAddress;
             userUpdate.city = application.city;
             userUpdate.businessType = application.businessType;
-        } else if (status === 'rejected') {
+        } else {
+            // Any non-approved status (pending, rejected) revokes PRO access
             userUpdate.isPremium = false;
         }
         await User.findByIdAndUpdate(application.userId._id || application.userId, userUpdate);
@@ -135,7 +136,7 @@ router.get('/search', async (req, res) => {
     try {
         const { q, businessType } = req.query;
         
-        const query = { isPremium: true, premiumStatus: 'approved' };
+        const query = { isPremium: true, premiumStatus: 'approved', role: { $ne: 'admin' } };
         
         if (q) {
             query.$or = [
@@ -149,7 +150,7 @@ router.get('/search', async (req, res) => {
         }
 
         const sellers = await User.find(query)
-            .select('name avatar businessName businessType city isPremium premiumStatus createdAt')
+            .select('name avatar shopAvatar bannerImage businessName businessType city isPremium premiumStatus createdAt')
             .sort({ createdAt: -1 })
             .limit(50);
 
@@ -170,7 +171,18 @@ router.delete('/:id', verifyToken, async (req, res) => {
         if (!application) {
             return res.status(404).json({ message: 'Application not found.' });
         }
-        res.json({ message: 'Application deleted successfully.' });
+
+        // Also revoke PRO status from the associated user
+        await User.findByIdAndUpdate(
+            application.userId,
+            {
+                isPremium: false,
+                premiumStatus: 'rejected',
+                role: 'user',
+            }
+        );
+
+        res.json({ message: 'Application deleted and PRO access revoked.' });
     } catch (err) {
         console.error('Delete application error:', err);
         res.status(500).json({ message: 'Server error deleting application.' });
@@ -181,7 +193,7 @@ router.delete('/:id', verifyToken, async (req, res) => {
 router.get('/seller/:userId', async (req, res) => {
     try {
         const user = await User.findById(req.params.userId).select(
-            'name email phone avatar location businessName businessType businessAddress city isPremium premiumStatus createdAt'
+            'name email phone avatar shopAvatar bannerImage location businessName businessType businessAddress city isPremium premiumStatus createdAt'
         );
         if (!user) {
             return res.status(404).json({ message: 'Seller not found.' });

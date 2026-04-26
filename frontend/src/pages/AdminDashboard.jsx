@@ -5,12 +5,15 @@ import {
   Building, Phone, Mail, MapPin, FileText,
   ChevronDown, ChevronUp, RefreshCw, Award, AlertTriangle,
   Package, BarChart3, DollarSign, TrendingUp, ShoppingCart, UserCheck,
-  Home, Settings, FileCheck, X, Trash2, Search, Car, Calendar, Cpu
+  Home, Settings, FileCheck, X, Trash2, Search, Car, Calendar, Cpu,
+  Star, Store, Plus
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
   getAllApplications, updateApplicationStatus, getProducts,
-  getAllUsers, deleteUser, deleteProduct, deleteApplication
+  getAllUsers, deleteUser, deleteProduct, deleteApplication,
+  getFeaturedSellers, addFeaturedSeller, removeFeaturedSeller,
+  searchPremiumSellers
 } from '../services/api';
 
 const STATUS_COLORS = {
@@ -28,6 +31,7 @@ const STATUS_ICONS = {
 const adminNavItems = [
   { key: 'dashboard', label: 'Overview', icon: <Home size={18} />, path: '/admin' },
   { key: 'applications', label: 'PRO Applications', icon: <FileCheck size={18} />, path: '/admin/applications' },
+  { key: 'featured', label: 'Featured Sellers', icon: <Star size={18} />, path: '/admin/featured' },
   { key: 'products', label: 'All Products', icon: <Package size={18} />, path: '/admin/products' },
   { key: 'users', label: 'Users', icon: <Users size={18} />, path: '/admin/users' },
   { key: 'settings', label: 'Settings', icon: <Settings size={18} />, path: '/admin/settings' },
@@ -52,6 +56,13 @@ export default function AdminDashboard() {
   const [productSearch, setProductSearch] = useState('');
   const [userSearch, setUserSearch] = useState('');
   const [deletingId, setDeletingId] = useState(null);
+
+  // Featured sellers state
+  const [featuredSellers, setFeaturedSellers] = useState([]);
+  const [availableSellers, setAvailableSellers] = useState([]);
+  const [sellerSearch, setSellerSearch] = useState('');
+  const [addingSellerId, setAddingSellerId] = useState(null);
+  const [removingSellerId, setRemovingSellerId] = useState(null);
 
   // Determine active tab from URL
   const pathSegments = location.pathname.split('/').filter(Boolean);
@@ -82,14 +93,16 @@ export default function AdminDashboard() {
     setLoading(true);
     setError('');
     try {
-      const [apps, prods, users] = await Promise.all([
+      const [apps, prods, users, featured] = await Promise.all([
         getAllApplications().catch(() => []),
         getProducts().catch(() => []),
-        getAllUsers().catch(() => [])
+        getAllUsers().catch(() => []),
+        getFeaturedSellers().catch(() => [])
       ]);
       setApplications(Array.isArray(apps) ? apps : []);
       setAllProducts(Array.isArray(prods) ? prods : []);
       setAllUsers(Array.isArray(users) ? users : []);
+      setFeaturedSellers(Array.isArray(featured) ? featured : []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -155,14 +168,58 @@ export default function AdminDashboard() {
     try {
       await deleteUser(id);
       setAllUsers(prev => prev.filter(u => u._id !== id));
-      // Also refresh products since user's products were deleted
-      const prods = await getProducts().catch(() => []);
+      // Also refresh products and featured sellers since user's data was deleted
+      const [prods, featured] = await Promise.all([
+        getProducts().catch(() => []),
+        getFeaturedSellers().catch(() => [])
+      ]);
       setAllProducts(Array.isArray(prods) ? prods : []);
+      setFeaturedSellers(Array.isArray(featured) ? featured : []);
       showSuccess('User and associated data deleted successfully.');
     } catch (err) {
       setError(err.message || 'Failed to delete user.');
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  // --- Featured Sellers Handlers ---
+  const handleAddFeatured = async (sellerId) => {
+    setAddingSellerId(sellerId);
+    try {
+      const result = await addFeaturedSeller(sellerId);
+      setFeaturedSellers(prev => [...prev, result.featuredSeller]);
+      setAvailableSellers(prev => prev.filter(s => s._id !== sellerId));
+      showSuccess('Seller added to featured list.');
+    } catch (err) {
+      setError(err.message || 'Failed to add featured seller.');
+    } finally {
+      setAddingSellerId(null);
+    }
+  };
+
+  const handleRemoveFeatured = async (featuredId) => {
+    setRemovingSellerId(featuredId);
+    try {
+      await removeFeaturedSeller(featuredId);
+      setFeaturedSellers(prev => prev.filter(f => f._id !== featuredId));
+      showSuccess('Seller removed from featured list.');
+    } catch (err) {
+      setError(err.message || 'Failed to remove featured seller.');
+    } finally {
+      setRemovingSellerId(null);
+    }
+  };
+
+  const searchAvailableSellers = async () => {
+    if (!sellerSearch.trim()) return;
+    try {
+      const results = await searchPremiumSellers(sellerSearch);
+      // Filter out already featured sellers
+      const featuredIds = new Set(featuredSellers.map(f => f.sellerId));
+      setAvailableSellers((Array.isArray(results) ? results : []).filter(s => !featuredIds.has(s._id)));
+    } catch (err) {
+      setError(err.message || 'Failed to search sellers.');
     }
   };
 
@@ -174,6 +231,7 @@ export default function AdminDashboard() {
     totalViews: allProducts.reduce((acc, p) => acc + (p.views || 0), 0),
     users: allUsers.length,
     sellers: allUsers.filter(u => u.isPremium).length,
+    featured: featuredSellers.length,
   };
 
   const filteredApps = appFilter === 'all'
@@ -217,7 +275,7 @@ export default function AdminDashboard() {
           { label: 'Total Views', value: counts.totalViews.toLocaleString(), icon: <Eye size={20} />, color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/30' },
           { label: 'Registered Users', value: counts.users, icon: <Users size={20} />, color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/30' },
           { label: 'PRO Sellers', value: counts.sellers, icon: <Award size={20} />, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/30' },
-          { label: 'Rejected Apps', value: counts.rejected, icon: <XCircle size={20} />, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/30' },
+          { label: 'Featured', value: counts.featured, icon: <Star size={20} />, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/30' },
           { label: 'Avg Views/Item', value: counts.products > 0 ? Math.round(counts.totalViews / counts.products) : 0, icon: <BarChart3 size={20} />, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30' },
         ].map((stat, i) => (
           <div key={i} className={`p-5 border ${stat.bg}`}>
@@ -637,6 +695,120 @@ export default function AdminDashboard() {
     </div>
   );
 
+  // ── FEATURED SELLERS SECTION ──
+  const FeaturedSellersSection = () => (
+    <div className="space-y-8">
+      {/* Current Featured Sellers */}
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-sm font-black uppercase">Current Featured Sellers</h3>
+            <p className="text-[10px] text-zinc-500 mt-1">These sellers appear on the homepage Best Sellers section.</p>
+          </div>
+          <span className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">
+            {featuredSellers.length} featured
+          </span>
+        </div>
+
+        {featuredSellers.length === 0 ? (
+          <div className="p-12 text-center border border-zinc-900 bg-black">
+            <Star size={36} className="text-zinc-700 mx-auto mb-4" />
+            <p className="text-zinc-500 text-xs uppercase font-bold">No featured sellers yet.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {featuredSellers.map((seller) => (
+              <div key={seller._id} className="bg-black border border-zinc-800 p-5 flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full overflow-hidden bg-zinc-800 border border-zinc-700 shrink-0">
+                  {seller.avatar ? (
+                    <img src={seller.avatar} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Store size={20} className="text-zinc-600" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold uppercase truncate">{seller.businessName || seller.name}</p>
+                  <p className="text-[10px] text-zinc-500 uppercase">{seller.city || 'Sri Lanka'}</p>
+                  <p className="text-[9px] text-zinc-600 mt-0.5">{seller.businessType?.replace('_', ' ')}</p>
+                </div>
+                <button
+                  onClick={() => handleRemoveFeatured(seller._id)}
+                  disabled={removingSellerId === seller._id}
+                  className="p-2 text-zinc-600 hover:text-red-500 hover:bg-red-500/10 transition-all disabled:opacity-50"
+                  title="Remove from featured"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Add New Featured Seller */}
+      <div className="bg-black border border-zinc-800 p-6">
+        <h3 className="text-sm font-black uppercase mb-4">Add Featured Seller</h3>
+        <p className="text-[10px] text-zinc-500 mb-4">Search for approved PRO sellers and add them to the homepage.</p>
+
+        <div className="flex gap-3 mb-6">
+          <div className="relative flex-1 max-w-md">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600" />
+            <input
+              type="text"
+              value={sellerSearch}
+              onChange={e => setSellerSearch(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && searchAvailableSellers()}
+              placeholder="Search by business name..."
+              className="w-full bg-black border border-zinc-800 pl-9 pr-4 py-3 text-xs text-white placeholder-zinc-600 outline-none focus:border-red-600 transition-all"
+            />
+          </div>
+          <button
+            onClick={searchAvailableSellers}
+            disabled={!sellerSearch.trim()}
+            className="px-5 py-3 bg-red-600 hover:bg-red-500 disabled:opacity-40 text-[10px] font-black uppercase tracking-widest transition-all"
+          >
+            Search
+          </button>
+        </div>
+
+        {availableSellers.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-3">Search Results</p>
+            {availableSellers.map((seller) => (
+              <div key={seller._id} className="flex items-center justify-between bg-zinc-950 border border-zinc-900 p-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-zinc-800 border border-zinc-700">
+                    {seller.avatar ? (
+                      <img src={seller.avatar} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Store size={16} className="text-zinc-600" />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase">{seller.businessName || seller.name}</p>
+                    <p className="text-[10px] text-zinc-500">{seller.city || 'Sri Lanka'} · {seller.businessType?.replace('_', ' ')}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleAddFeatured(seller._id)}
+                  disabled={addingSellerId === seller._id}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-[10px] font-black uppercase tracking-widest transition-all"
+                >
+                  <Plus size={12} />
+                  {addingSellerId === seller._id ? 'Adding...' : 'Add'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   // ── SETTINGS SECTION ──
   const SettingsSection = () => (
     <div className="space-y-6">
@@ -761,6 +933,7 @@ export default function AdminDashboard() {
             <h2 className="text-lg font-black uppercase">
               {activeTab === 'dashboard' && 'Overview'}
               {activeTab === 'applications' && 'PRO Applications'}
+              {activeTab === 'featured' && 'Featured Sellers'}
               {activeTab === 'products' && 'All Products'}
               {activeTab === 'users' && 'Users'}
               {activeTab === 'settings' && 'Settings'}
@@ -768,6 +941,7 @@ export default function AdminDashboard() {
             <p className="text-[10px] text-zinc-500 mt-1">
               {activeTab === 'dashboard' && 'Platform overview and key metrics'}
               {activeTab === 'applications' && 'Review and manage seller applications'}
+              {activeTab === 'featured' && 'Manage homepage featured sellers'}
               {activeTab === 'products' && 'Manage all product listings'}
               {activeTab === 'users' && 'Manage registered users'}
               {activeTab === 'settings' && 'System settings and information'}
@@ -793,6 +967,7 @@ export default function AdminDashboard() {
           <>
             {activeTab === 'dashboard' && <OverviewSection />}
             {activeTab === 'applications' && <ApplicationsSection />}
+            {activeTab === 'featured' && <FeaturedSellersSection />}
             {activeTab === 'products' && <ProductsSection />}
             {activeTab === 'users' && <UsersSection />}
             {activeTab === 'settings' && <SettingsSection />}

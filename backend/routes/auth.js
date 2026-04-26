@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const User = require('../models/User');
+const FeaturedSeller = require('../models/FeaturedSeller');
 const { verifyToken } = require('../middleware/auth');
 
 const router = express.Router();
@@ -120,6 +121,8 @@ router.post('/login', async (req, res) => {
                 businessName: user.businessName,
                 businessType: user.businessType,
                 city: user.city,
+                bannerImage: user.bannerImage,
+                shopAvatar: user.shopAvatar,
             },
         });
     } catch (err) {
@@ -205,7 +208,7 @@ router.post('/avatar', verifyToken, upload.single('avatar'), async (req, res) =>
 
         if (!user) return res.status(404).json({ message: 'User not found.' });
 
-res.json({
+        res.json({
             message: 'Avatar updated successfully.',
             avatar: user.avatar,
             user: {
@@ -221,6 +224,62 @@ res.json({
     } catch (err) {
         console.error('Avatar upload error:', err);
         res.status(500).json({ message: err.message || 'Server error during avatar upload.' });
+    }
+});
+
+// POST /api/auth/shop-banner  (protected) — upload shop banner image
+router.post('/shop-banner', verifyToken, upload.single('banner'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No banner image provided.' });
+        }
+
+        const base64 = req.file.buffer.toString('base64');
+        const dataUrl = `data:${req.file.mimetype};base64,${base64}`;
+
+        const user = await User.findByIdAndUpdate(
+            req.user.id,
+            { bannerImage: dataUrl },
+            { new: true }
+        ).select('-passwordHash');
+
+        if (!user) return res.status(404).json({ message: 'User not found.' });
+
+        res.json({
+            message: 'Shop banner updated successfully.',
+            bannerImage: user.bannerImage,
+        });
+    } catch (err) {
+        console.error('Banner upload error:', err);
+        res.status(500).json({ message: err.message || 'Server error during banner upload.' });
+    }
+});
+
+// POST /api/auth/shop-avatar  (protected) — upload shop profile/avatar image
+router.post('/shop-avatar', verifyToken, upload.single('shopAvatar'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No shop avatar image provided.' });
+        }
+
+        const base64 = req.file.buffer.toString('base64');
+        const dataUrl = `data:${req.file.mimetype};base64,${base64}`;
+
+        const user = await User.findByIdAndUpdate(
+            req.user.id,
+            { shopAvatar: dataUrl },
+            { new: true }
+        ).select('-passwordHash');
+
+        if (!user) return res.status(404).json({ message: 'User not found.' });
+
+        res.json({
+            message: 'Shop avatar updated successfully.',
+            shopAvatar: user.shopAvatar,
+        });
+    } catch (err) {
+        console.error('Shop avatar upload error:', err);
+        res.status(500).json({ message: err.message || 'Server error during shop avatar upload.' });
     }
 });
 
@@ -248,9 +307,10 @@ router.delete('/users/:id', verifyToken, async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: 'User not found.' });
         }
-        // Also delete their products and premium applications
+        // Also delete their products, premium applications, and featured seller entry
         await Product.deleteMany({ seller: req.params.id });
         await PremiumUser.deleteMany({ userId: req.params.id });
+        await FeaturedSeller.deleteMany({ sellerId: req.params.id });
         res.json({ message: 'User and associated data deleted successfully.' });
     } catch (err) {
         console.error('Delete user error:', err);

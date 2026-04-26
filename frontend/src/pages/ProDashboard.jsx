@@ -10,7 +10,7 @@ import {
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
-import { getMyProducts, updateProfile, uploadAvatar } from '../services/api';
+import { getMyProducts, updateProfile, uploadAvatar, uploadShopBanner, uploadShopAvatar, getMe } from '../services/api';
 
 const BANNER_THEMES = [
   { id: 'blue', label: 'Ocean Blue', from: 'from-blue-900', via: 'via-blue-800', to: 'to-slate-900', accent: 'border-blue-400', badge: 'bg-blue-500' },
@@ -28,12 +28,17 @@ const SHOP_TAGS = [
 
 export default function ProDashboard() {
   const navigate = useNavigate();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
 
   const [myProducts, setMyProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [imageIndexes, setImageIndexes] = useState({});
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Server verification state — don't render anything until we verify PRO status
+  const [verifying, setVerifying] = useState(true);
+  const [isPro, setIsPro] = useState(false);
+  const [revokeReason, setRevokeReason] = useState(null); // 'deleted' | 'rejected' | null
 
   // Shop customization state (stored in localStorage for persistence demo)
   const storageKey = `sparehub_shop_${user?.id}`;
@@ -69,6 +74,13 @@ export default function ProDashboard() {
   const [avatarError, setAvatarError] = useState('');
   const avatarInputRef = React.useRef(null);
 
+  // Shop image upload state
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const [shopAvatarUploading, setShopAvatarUploading] = useState(false);
+  const [shopImageError, setShopImageError] = useState('');
+  const bannerInputRef = React.useRef(null);
+  const shopAvatarInputRef = React.useRef(null);
+
   const hasBusinessName = user?.businessName || user?.name;
 
   // Show welcome after user data loads
@@ -85,32 +97,126 @@ export default function ProDashboard() {
       .finally(() => setLoadingProducts(false));
   }, []);
 
-  // Redirect non-premium users
-  if (!user?.isPremium) {
+  // Verify user still has PRO access with the server before rendering anything
+  useEffect(() => {
+    let cancelled = false;
+    getMe()
+      .then(freshUser => {
+        if (cancelled) return;
+        if (freshUser) {
+          const userData = {
+            id: freshUser._id,
+            name: freshUser.name,
+            phone: freshUser.phone,
+            email: freshUser.email,
+            location: freshUser.location,
+            role: freshUser.role,
+            avatar: freshUser.avatar || null,
+            isPremium: freshUser.isPremium,
+            premiumStatus: freshUser.premiumStatus,
+            businessName: freshUser.businessName,
+            businessType: freshUser.businessType,
+            city: freshUser.city,
+            bannerImage: freshUser.bannerImage,
+            shopAvatar: freshUser.shopAvatar,
+          };
+          updateUser(userData);
+          if (!freshUser.isPremium) {
+            setIsPro(false);
+            setRevokeReason(freshUser.premiumStatus === 'rejected' ? 'rejected' : 'revoked');
+          } else {
+            setIsPro(true);
+            setRevokeReason(null);
+          }
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        const msg = err?.message || '';
+        // "User no longer exists" = 401 from verifyToken (user deleted)
+        // "User not found" = 404 from /auth/me (user deleted)
+        const isDeletedByAdmin = msg.includes('User no longer exists') || msg.includes('User not found');
+        if (isDeletedByAdmin) {
+          setIsPro(false);
+          setRevokeReason('deleted');
+        } else if (msg.includes('Invalid or expired token') || msg.includes('Access denied')) {
+          // Token completely invalid
+          setIsPro(false);
+          setRevokeReason('deleted');
+        } else {
+          // Network/server error — fallback to logout
+          logout();
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setVerifying(false);
+      });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Show loading while verifying with server
+  if (verifying) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center max-w-md px-6">
-          <Award size={48} className="text-zinc-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-black uppercase mb-3">PRO Access Required</h2>
-          <p className="text-zinc-400 text-sm mb-6">
-            {user?.premiumStatus === 'pending'
-              ? 'Your application is pending admin review. Please wait.'
-              : 'Apply for SpareHub PRO to access this dashboard.'}
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-zinc-500 text-xs uppercase font-bold tracking-widest">Verifying access...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Access denied screen — show specific reason
+  if (!isPro) {
+    const isDeleted = revokeReason === 'deleted';
+    const isRejected = revokeReason === 'rejected';
+
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center px-6">
+        <div className="text-center max-w-lg">
+          <div className="w-20 h-20 mx-auto mb-6 flex items-center justify-center bg-red-500/10 border-2 border-red-500 rounded-full">
+            <Shield size={36} className="text-red-500" />
+          </div>
+
+          <h2 className="text-3xl font-black uppercase mb-4 tracking-tight">
+            {isDeleted
+              ? 'Account Removed'
+              : isRejected
+                ? 'PRO Access Revoked'
+                : 'PRO Access Required'}
+          </h2>
+
+          <p className="text-zinc-300 text-base leading-relaxed mb-8">
+            {isDeleted
+              ? 'Your account has been removed by the administrator. If you believe this is a mistake, please contact support.'
+              : isRejected
+                ? 'The administrator has removed your PRO seller access. You can re-apply if you believe this was done in error.'
+                : 'Your PRO access has been revoked or expired. Apply for SpareHub PRO to access this dashboard.'}
           </p>
-          {(!user?.premiumStatus || user?.premiumStatus === 'rejected') && (
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            {!isDeleted && (
+              <button
+                onClick={() => navigate('/apply-pro')}
+                className="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase text-sm tracking-widest transition-all"
+              >
+                {isRejected ? 'Re-Apply for PRO' : 'Apply for PRO'}
+              </button>
+            )}
             <button
-              onClick={() => navigate('/apply-pro')}
-              className="px-8 py-3 bg-blue-500 text-black font-black uppercase text-sm tracking-widest hover:bg-blue-400 transition-all"
+              onClick={() => navigate('/dashboard')}
+              className="px-8 py-4 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white font-black uppercase text-sm tracking-widest transition-all"
             >
-              Apply for PRO
+              Back to Dashboard
             </button>
+          </div>
+
+          {isDeleted && (
+            <p className="mt-6 text-xs text-zinc-600 uppercase tracking-widest font-bold">
+              All associated data has been removed from the platform
+            </p>
           )}
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="block mt-4 text-zinc-500 text-xs underline mx-auto"
-          >
-            Back to Dashboard
-          </button>
         </div>
       </div>
     );
@@ -161,6 +267,60 @@ export default function ProDashboard() {
         ? prev.tags.filter(t => t !== tag)
         : [...prev.tags, tag],
     }));
+  };
+
+  // Shop banner upload handler
+  const handleBannerUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setShopImageError('Only image files are allowed.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setShopImageError('Image must be under 5MB.');
+      return;
+    }
+    setShopImageError('');
+    setBannerUploading(true);
+    try {
+      const data = await uploadShopBanner(file);
+      updateUser({ ...user, bannerImage: data.bannerImage });
+      setShopSaved(true);
+      setTimeout(() => setShopSaved(false), 3000);
+    } catch (err) {
+      setShopImageError(err.message || 'Banner upload failed.');
+    } finally {
+      setBannerUploading(false);
+      if (bannerInputRef.current) bannerInputRef.current.value = '';
+    }
+  };
+
+  // Shop avatar upload handler
+  const handleShopAvatarUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setShopImageError('Only image files are allowed.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setShopImageError('Image must be under 5MB.');
+      return;
+    }
+    setShopImageError('');
+    setShopAvatarUploading(true);
+    try {
+      const data = await uploadShopAvatar(file);
+      updateUser({ ...user, shopAvatar: data.shopAvatar });
+      setShopSaved(true);
+      setTimeout(() => setShopSaved(false), 3000);
+    } catch (err) {
+      setShopImageError(err.message || 'Shop avatar upload failed.');
+    } finally {
+      setShopAvatarUploading(false);
+      if (shopAvatarInputRef.current) shopAvatarInputRef.current.value = '';
+    }
   };
 
   const nextImage = (e, idx, count) => {
@@ -300,18 +460,34 @@ export default function ProDashboard() {
         </div>
 
         {/* PRO BANNER — Shop Preview Header */}
-        <div className={`relative bg-gradient-to-br ${currentTheme.from} ${currentTheme.via} ${currentTheme.to} border-b ${currentTheme.accent} border-opacity-40`}>
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-white/5 blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full bg-white/5 blur-2xl" />
-          </div>
+        <div className={`relative overflow-hidden border-b ${currentTheme.accent} border-opacity-40`}>
+          {/* Banner background image or gradient */}
+          {user?.bannerImage ? (
+            <div className="absolute inset-0">
+              <img src={user.bannerImage} alt="Shop Banner" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+            </div>
+          ) : (
+            <div className={`absolute inset-0 bg-gradient-to-br ${currentTheme.from} ${currentTheme.via} ${currentTheme.to}`}>
+              <div className="absolute inset-0 overflow-hidden">
+                <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-white/5 blur-3xl" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full bg-white/5 blur-2xl" />
+              </div>
+            </div>
+          )}
           <div className="relative max-w-7xl mx-auto px-6 py-10">
             <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6">
               <div className="flex items-end gap-6">
-                {/* Logo circle */}
-                <div className={`w-20 h-20 ${currentTheme.badge} flex items-center justify-center text-2xl font-black text-white border-2 border-white/20 flex-shrink-0`}>
-                  {shopData.logoText}
-                </div>
+                {/* Shop Avatar or Logo circle */}
+                {user?.shopAvatar ? (
+                  <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white/20 flex-shrink-0 bg-zinc-800">
+                    <img src={user.shopAvatar} alt="Shop Avatar" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className={`w-20 h-20 ${currentTheme.badge} flex items-center justify-center text-2xl font-black text-white border-2 border-white/20 flex-shrink-0`}>
+                    {shopData.logoText}
+                  </div>
+                )}
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="bg-white/20 text-white text-[9px] font-black uppercase px-2 py-0.5 tracking-widest flex items-center gap-1">
@@ -621,6 +797,89 @@ export default function ProDashboard() {
                 </div>
               </div>
 
+              {/* Shop Images Upload */}
+              <div className="bg-zinc-950 border border-zinc-900 p-6">
+                <h3 className="text-xs font-black uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <Camera size={14} className="text-blue-400" /> Shop Images
+                </h3>
+
+                {shopImageError && (
+                  <p className="text-[9px] text-red-400 font-bold mb-3">{shopImageError}</p>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Banner Upload */}
+                  <div>
+                    <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Shop Banner</label>
+                    <div className="relative h-32 bg-zinc-900 border border-zinc-800 overflow-hidden mb-2">
+                      {user?.bannerImage ? (
+                        <img src={user.bannerImage} alt="Banner" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs">No banner uploaded</div>
+                      )}
+                      {bannerUploading && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                          <Loader2 size={20} className="text-white animate-spin" />
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      ref={bannerInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleBannerUpload}
+                    />
+                    <button
+                      onClick={() => bannerInputRef.current?.click()}
+                      disabled={bannerUploading}
+                      className="w-full px-4 py-2 bg-zinc-800 text-[10px] font-black uppercase tracking-widest hover:bg-zinc-700 transition-all disabled:opacity-50"
+                    >
+                      {bannerUploading ? 'Uploading...' : 'Upload Banner'}
+                    </button>
+                    <p className="text-[8px] text-zinc-600 mt-1">Recommended: 1200x400px, max 5MB</p>
+                  </div>
+
+                  {/* Shop Avatar Upload */}
+                  <div>
+                    <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Shop Profile Image</label>
+                    <div className="flex items-center gap-4 mb-2">
+                      <div className="w-20 h-20 rounded-full overflow-hidden bg-zinc-800 border border-zinc-700">
+                        {user?.shopAvatar ? (
+                          <img src={user.shopAvatar} alt="Shop Avatar" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                            <Store size={24} />
+                          </div>
+                        )}
+                        {shopAvatarUploading && (
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-full">
+                            <Loader2 size={20} className="text-white animate-spin" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <input
+                          ref={shopAvatarInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleShopAvatarUpload}
+                        />
+                        <button
+                          onClick={() => shopAvatarInputRef.current?.click()}
+                          disabled={shopAvatarUploading}
+                          className="px-4 py-2 bg-zinc-800 text-[10px] font-black uppercase tracking-widest hover:bg-zinc-700 transition-all disabled:opacity-50"
+                        >
+                          {shopAvatarUploading ? 'Uploading...' : 'Upload Profile Image'}
+                        </button>
+                        <p className="text-[8px] text-zinc-600 mt-1">Square image, max 5MB</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Basic Info */}
               <div className="bg-zinc-950 border border-zinc-900 p-6 space-y-4">
                 <h3 className="text-xs font-black uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -688,11 +947,23 @@ export default function ProDashboard() {
               {/* Live Preview */}
               <div className="bg-zinc-950 border border-zinc-900 p-6">
                 <h3 className="text-xs font-black uppercase tracking-widest mb-4 text-zinc-500">Live Preview</h3>
-                <div className={`bg-gradient-to-br ${currentTheme.from} ${currentTheme.via} ${currentTheme.to} p-6`}>
-                  <div className="flex items-center gap-4">
-                    <div className={`w-14 h-14 ${currentTheme.badge} flex items-center justify-center text-lg font-black text-white`}>
-                      {(editingShop ? tempData.logoText : shopData.logoText)}
+                <div className={`relative overflow-hidden ${user?.bannerImage ? '' : `bg-gradient-to-br ${currentTheme.from} ${currentTheme.via} ${currentTheme.to}`} p-6`}>
+                  {user?.bannerImage && (
+                    <div className="absolute inset-0">
+                      <img src={user.bannerImage} alt="Banner" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-black/50" />
                     </div>
+                  )}
+                  <div className="relative flex items-center gap-4">
+                    {user?.shopAvatar ? (
+                      <div className="w-14 h-14 rounded-full overflow-hidden border border-white/20 bg-zinc-800">
+                        <img src={user.shopAvatar} alt="Shop Avatar" className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className={`w-14 h-14 ${currentTheme.badge} flex items-center justify-center text-lg font-black text-white`}>
+                        {(editingShop ? tempData.logoText : shopData.logoText)}
+                      </div>
+                    )}
                     <div>
                       <span className="bg-white/20 text-white text-[8px] font-black uppercase px-2 py-0.5 tracking-widest">
                         Verified PRO

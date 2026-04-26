@@ -11,28 +11,33 @@ async function apiFetch(path, options = {}) {
     
     try {
         const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
-        
+
         const text = await res.text();
-        
+
         if (!text) {
             throw new Error('Server returned empty response');
         }
-        
+
+        // Parse JSON first (separate from HTTP error handling)
+        let data;
         try {
-            const data = JSON.parse(text);
-            if (!res.ok) {
-                throw new Error(data.message || 'Request failed');
-            }
-            return data;
+            data = JSON.parse(text);
         } catch (parseErr) {
             console.error('JSON Parse Error:', text);
             throw new Error('Invalid server response');
         }
-} catch (err) {
+
+        // Now handle HTTP errors with the parsed message
+        if (!res.ok) {
+            throw new Error(data.message || `Request failed with status ${res.status}`);
+        }
+
+        return data;
+    } catch (err) {
         console.error('API Error:', err);
         const errorMsg = err.message || 'Unknown error';
-        if (errorMsg === 'Failed to fetch' || 
-            errorMsg.includes('NetworkError') || 
+        if (errorMsg === 'Failed to fetch' ||
+            errorMsg.includes('NetworkError') ||
             err.name === 'TypeError' ||
             errorMsg === 'Server returned empty response' ||
             errorMsg === 'Invalid server response') {
@@ -76,6 +81,36 @@ export const uploadAvatar = async (file) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Upload failed');
     return data; // { avatar: '<url or base64>' }
+};
+
+// Upload shop banner image
+export const uploadShopBanner = async (file) => {
+    const token = localStorage.getItem('sparehub_token');
+    const formData = new FormData();
+    formData.append('banner', file);
+    const res = await fetch(`${API_BASE}/auth/shop-banner`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Banner upload failed');
+    return data; // { bannerImage: '<base64>' }
+};
+
+// Upload shop avatar image
+export const uploadShopAvatar = async (file) => {
+    const token = localStorage.getItem('sparehub_token');
+    const formData = new FormData();
+    formData.append('shopAvatar', file);
+    const res = await fetch(`${API_BASE}/auth/shop-avatar`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Shop avatar upload failed');
+    return data; // { shopAvatar: '<base64>' }
 };
 
 // --- Products ---
@@ -153,6 +188,18 @@ export const deleteProduct = (id) =>
 export const deleteApplication = (id) =>
     apiFetch(`/premium/${id}`, { method: 'DELETE' });
 
+// --- Featured Sellers ---
+export const getFeaturedSellers = () => apiFetch('/featured-sellers');
+
+export const addFeaturedSeller = (sellerId) =>
+    apiFetch('/featured-sellers', {
+        method: 'POST',
+        body: JSON.stringify({ sellerId }),
+    });
+
+export const removeFeaturedSeller = (id) =>
+    apiFetch(`/featured-sellers/${id}`, { method: 'DELETE' });
+
 // --- Reviews ---
 export const getReviews = (productId) => apiFetch(`/reviews/${productId}`);
 
@@ -164,3 +211,31 @@ export const addReview = (productId, { rating, comment }) =>
 
 export const deleteReview = (reviewId) =>
     apiFetch(`/reviews/${reviewId}`, { method: 'DELETE' });
+
+// --- Platform Feedback ---
+export const getPlatformFeedback = () => apiFetch('/feedback');
+
+export const getPlatformFeedbackStats = () => apiFetch('/feedback/stats');
+
+export const addPlatformFeedback = ({ rating, comment, category }) =>
+    apiFetch('/feedback', {
+        method: 'POST',
+        body: JSON.stringify({ rating, comment, category }),
+    });
+
+export const deletePlatformFeedback = (id) =>
+    apiFetch(`/feedback/${id}`, { method: 'DELETE' });
+
+// --- Seller Reviews ---
+export const getSellerReviews = (sellerId) => apiFetch(`/seller-reviews/${sellerId}`);
+
+export const getSellerReviewStats = (sellerId) => apiFetch(`/seller-reviews/${sellerId}/stats`);
+
+export const addSellerReview = (sellerId, { rating, comment }) =>
+    apiFetch(`/seller-reviews/${sellerId}`, {
+        method: 'POST',
+        body: JSON.stringify({ rating, comment }),
+    });
+
+export const deleteSellerReview = (reviewId) =>
+    apiFetch(`/seller-reviews/${reviewId}`, { method: 'DELETE' });

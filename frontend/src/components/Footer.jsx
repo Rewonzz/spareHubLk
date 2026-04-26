@@ -1,64 +1,49 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Footer = () => {
   return (
     <footer className="bg-black text-white pt-20 pb-10">
       <div className="max-w-7xl mx-auto px-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-          
-          <div className="col-span-1 md:col-span-1">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-16">
+
+          <div>
             <h2 className="text-3xl font-black tracking-tighter mb-6">
               SPARE<span className="text-red-600">HUB</span>
             </h2>
             <p className="text-zinc-500 text-sm leading-relaxed mb-6">
               Sri Lanka's premier marketplace for genuine automotive parts. Connecting buyers and sellers directly for a seamless experience.
             </p>
-            <div className="flex gap-4">
-              <div className="w-10 h-10 bg-zinc-900 flex items-center justify-center rounded-sm hover:bg-red-600 transition-colors cursor-pointer">
-                <span className="text-xs font-bold">FB</span>
-              </div>
-              <div className="w-10 h-10 bg-zinc-900 flex items-center justify-center rounded-sm hover:bg-red-600 transition-colors cursor-pointer">
-                <span className="text-xs font-bold">IG</span>
-              </div>
-              <div className="w-10 h-10 bg-zinc-900 flex items-center justify-center rounded-sm hover:bg-red-600 transition-colors cursor-pointer">
-                <span className="text-xs font-bold">WA</span>
-              </div>
+            <div className="text-[10px] uppercase tracking-widest text-zinc-600 font-bold">
+              Sri Lanka's Premium Auto Marketplace
             </div>
           </div>
 
           <div>
             <h3 className="text-red-600 font-bold uppercase tracking-widest text-xs mb-8">Quick Links</h3>
             <ul className="space-y-4 text-zinc-400 text-sm">
-              <li className="hover:text-white transition-colors cursor-pointer">Home</li>
-              <li className="hover:text-white transition-colors cursor-pointer">Browse Parts</li>
-              <li className="hover:text-white transition-colors cursor-pointer">Verified Sellers</li>
-              <li className="hover:text-white transition-colors cursor-pointer">Pricing</li>
+              <li><Link to="/" className="hover:text-white transition-colors">Home</Link></li>
+              <li><Link to="/shop" className="hover:text-white transition-colors">Browse Parts</Link></li>
+              <li><Link to="/sellers" className="hover:text-white transition-colors">Verified Sellers</Link></li>
+              <li><Link to="/ai-tools" className="hover:text-white transition-colors">AI Tools</Link></li>
             </ul>
           </div>
 
           <div>
-            <h3 className="text-red-600 font-bold uppercase tracking-widest text-xs mb-8">Support</h3>
+            <h3 className="text-red-600 font-bold uppercase tracking-widest text-xs mb-8">Community</h3>
             <ul className="space-y-4 text-zinc-400 text-sm">
-              <li className="hover:text-white transition-colors cursor-pointer">Safety Tips</li>
-              <li className="hover:text-white transition-colors cursor-pointer">Terms of Service</li>
-              <li className="hover:text-white transition-colors cursor-pointer">Privacy Policy</li>
-              <li className="hover:text-white transition-colors cursor-pointer">Help Center</li>
+              <li>
+                <button onClick={() => document.getElementById('testimonials')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-white transition-colors text-left">
+                  Rate SpareHub
+                </button>
+              </li>
+              <li>
+                <button onClick={() => document.getElementById('testimonials')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-white transition-colors text-left">
+                  Buyer Feedback
+                </button>
+              </li>
+              <li><Link to="/apply-pro" className="hover:text-white transition-colors">Become a PRO Seller</Link></li>
             </ul>
-          </div>
-
-          <div>
-            <h3 className="text-red-600 font-bold uppercase tracking-widest text-xs mb-8">Newsletter</h3>
-            <p className="text-zinc-500 text-xs mb-4">Get the latest stock updates directly in your inbox.</p>
-            <div className="flex h-12">
-              <input 
-                type="email" 
-                placeholder="Email address" 
-                className="bg-zinc-900 border-none px-4 text-sm w-full focus:ring-1 focus:ring-red-600 outline-none"
-              />
-              <button className="bg-red-600 px-4 text-xs font-bold uppercase hover:bg-red-700 transition-colors">
-                Join
-              </button>
-            </div>
           </div>
 
         </div>
@@ -67,7 +52,7 @@ const Footer = () => {
           <p className="text-zinc-600 text-[10px] uppercase tracking-widest">
             © 2026 SpareHub LK // All Rights Reserved
           </p>
-          <button 
+          <button
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             className="group flex items-center gap-2 text-zinc-500 hover:text-red-600 transition-colors text-[10px] font-bold uppercase tracking-[0.2em]"
           >

@@ -164,14 +164,6 @@ export default function Navbar({ onSearch }) {
       <AuthGuardModal {...AuthGuardModalProps} />
 
       <nav className="w-full bg-black text-white sticky top-0 z-50 border-b border-zinc-800">
-        <div className="flex justify-between items-center px-6 py-2 bg-zinc-950 border-b border-zinc-900">
-          <div className="flex gap-6">
-            <a href="#" className="text-[10px] uppercase tracking-widest text-zinc-500 hover:text-red-600 transition-colors">About Us</a>
-            <a href="#" className="text-[10px] uppercase tracking-widest text-zinc-500 hover:text-red-600 transition-colors">FAQ</a>
-          </div>
-          <div className="text-[10px] uppercase tracking-widest text-zinc-600 font-bold">Sri Lanka's Premium Auto Marketplace</div>
-        </div>
-
         <div className="w-full flex items-center px-6 py-4 gap-10">
           <Link to="/" className="flex items-center gap-1 shrink-0">
             <label className="text-red-600 font-black text-3xl tracking-tighter cursor-pointer">SPARE</label>
@@ -255,7 +247,7 @@ export default function Navbar({ onSearch }) {
               >
                 <div className="relative">
                   {isLoggedIn ? (
-                    <div className="w-8 h-8 border border-red-600 overflow-hidden bg-zinc-800 rounded-sm">
+                    <div className="w-8 h-8 border border-red-600 overflow-hidden bg-zinc-800 rounded-full">
                       <img src={avatarSrc} alt="PFP" className="w-full h-full object-cover" />
                     </div>
                   ) : (

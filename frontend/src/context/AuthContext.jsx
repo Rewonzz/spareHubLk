@@ -18,7 +18,13 @@ export function AuthProvider({ children }) {
             fetch('/api/auth/me', {
                 headers: { Authorization: `Bearer ${storedToken}` },
             })
-                .then(res => res.ok ? res.json() : null)
+                .then(res => {
+                    if (!res.ok) {
+                        // User was deleted or token is invalid — force logout
+                        throw new Error('Session invalid');
+                    }
+                    return res.json();
+                })
                 .then(freshUser => {
                     if (freshUser) {
                         const userData = {
@@ -34,12 +40,20 @@ export function AuthProvider({ children }) {
                             businessName: freshUser.businessName,
                             businessType: freshUser.businessType,
                             city: freshUser.city,
+                            bannerImage: freshUser.bannerImage,
+                            shopAvatar: freshUser.shopAvatar,
                         };
                         localStorage.setItem('sparehub_user', JSON.stringify(userData));
                         setUser(userData);
                     }
                 })
-                .catch(() => {})
+                .catch(() => {
+                    // Token invalid or user deleted — clear everything
+                    localStorage.removeItem('sparehub_token');
+                    localStorage.removeItem('sparehub_user');
+                    setToken(null);
+                    setUser(null);
+                })
                 .finally(() => setLoading(false));
         } else {
             setLoading(false);

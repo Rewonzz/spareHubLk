@@ -37,6 +37,18 @@ app.use('/api/premium', premiumRoutes);
 const reviewRoutes = require('./routes/reviews');
 app.use('/api/reviews', reviewRoutes);
 
+// --- Featured Sellers Routes ---
+const featuredSellerRoutes = require('./routes/featuredSellers');
+app.use('/api/featured-sellers', featuredSellerRoutes);
+
+// --- Platform Feedback Routes ---
+const platformFeedbackRoutes = require('./routes/platformFeedback');
+app.use('/api/feedback', platformFeedbackRoutes);
+
+// --- Seller Review Routes ---
+const sellerReviewRoutes = require('./routes/sellerReviews');
+app.use('/api/seller-reviews', sellerReviewRoutes);
+
 // --- Vehicle Schema & Search Route ---
 const vehicleSchema = new mongoose.Schema({
   prefix: { type: String, required: true },
@@ -62,4 +74,9 @@ app.get('/api/vehicle/:prefix', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Server running on port ${PORT}`));
+
+if (require.main === module) {
+    app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Server running on port ${PORT}`));
+}
+
+module.exports = app;
