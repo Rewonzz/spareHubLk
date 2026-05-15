@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const API_KEY = "AIzaSyCzmwJUJvrb6nLi6zQ8RBqgvSlb8aEwKRg";
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 const SYSTEM_CONTEXT = `You are an AI assistant for SpareHubLk, Sri Lanka's largest vehicle spare parts marketplace.
